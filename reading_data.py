@@ -25,7 +25,7 @@ def read_inhibition_data(csv_file_path):
 
 def calculate_descriptors(mol):
     """
-    Calculates molecular descriptors for a given RDKit molecule.
+    Calculates molecular descriptors for a given RDKit molecule.yy
 
     Parameters:
         mol (rdkit.Chem.Mol): An RDKit molecule object.
@@ -143,7 +143,7 @@ def add_all_descriptors_to_df(df):
     return result_df
 
 # Useage
-data_path = r'Data\tested_molecules.csv'  # Replace with your actual file path
+data_path = # insert path
 mol_tested = read_inhibition_data(data_path)
 if mol_tested is not None:
     mol_tested = add_all_descriptors_to_df(mol_tested)
