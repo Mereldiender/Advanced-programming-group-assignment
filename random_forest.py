@@ -4,9 +4,14 @@ import seaborn as sns
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
+from sklearn.model_selection import KFold, cross_val_score
+from sklearn.feature_selection import SelectFromModel
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from sklearn.metrics import mean_squared_error
+from sklearn.ensemble import RandomForestRegressor
 import matplotlib.pyplot as plt
+
 
 data = pd.read_pickle(r"C:\Users\20212072\OneDrive - TU Eindhoven\Documents\Year3(2023-2024)\Kwartiel4\8CC00 - Advanced programming and biomedical data analysis\Group Assignment\calculated_descriptors.pkl")
 
@@ -57,7 +62,7 @@ feature_scores = pd.Series(clf.feature_importances_, index=X_train.columns).sort
 
 # ## ---------------- Build the Random Forest model on selected features
 # # Declare feature vector and target variable
-# X = data.drop(columns=[], axis=1)
+# X = data.drop(columns=[], axis=1) # fill out the names of the features that can be neglected
 # y = data['PKM2_inhibition']
 
 # # Split data into training and testing sets
@@ -78,11 +83,48 @@ feature_scores = pd.Series(clf.feature_importances_, index=X_train.columns).sort
 
 ## ---------------- Confustion Matrix
 # Print the Confusion Matrix and slice it into four pieces
-cm = confusion_matrix(y_test, y_pred, labels=clf.classes_)
-print('Confusion matrix\n\n', cm)
+# cm = confusion_matrix(y_test, y_pred, labels=clf.classes_)
+# print('Confusion matrix\n', cm)
 
-# Plot confustion matrix
-disp = ConfusionMatrixDisplay(confusion_matrix=cm,
-                              display_labels=clf.classes_)
-disp.plot()
-plt.show()
+# # Plot confustion matrix
+# disp = ConfusionMatrixDisplay(confusion_matrix=cm,
+#                               display_labels=clf.classes_)
+# disp.plot()
+# plt.show()
+
+## ---------------- Use the wrapping technique proposed in literature
+# Heb het nog niet uit kunnen testen, want daar was mijn laptop veel te lang mee bezig dus heb het afgekapt.
+
+# This part of the code executes the k-fold cross-validation. 
+# What needs yet to be coded:
+# After this iteration, remove the least 
+# important fraction of the variables and train another learning machine on the remainders. Again, keep
+# recording the CV test predictions. Repeat this removing of a fraction and compute the CV test predictions.
+# Aggregate the predictions from all k CV test sets and compute the aggregate error rate at each step down
+# in number of variables. Select p' that minimizes the curve of median error rate vs. nr of variables. 
+# If p' is selected, train a learning machine now on all the data, producing a ranking of the variables, and
+# take only the most important p' variables to input in the final learning machine.
+k = 10  # Number of folds
+kf = KFold(n_splits=k, shuffle=True, random_state=1)
+errors = []
+
+for train_index, test_index in kf.split(X):
+    # Split data into training and validation sets
+    X_train, X_test = X.iloc[train_index], X.iloc[test_index]
+    y_train, y_test = y.iloc[train_index], y.iloc[test_index]
+
+    # Train the Random Forest model
+    model = RandomForestClassifier(n_estimators=100, random_state=1)
+    model.fit(X_train, y_train)
+
+    # Predict on validation set
+    y_pred = model.predict(X_test)
+
+    # Compute the error metric (e.g., Mean Squared Error)
+    mse = mean_squared_error(y_test, y_pred)
+    print(mse)
+    errors.append(mse)
+
+# Average error across all folds
+average_error = sum(errors) / k
+print(f'Average Mean Squared Error: {average_error}')
