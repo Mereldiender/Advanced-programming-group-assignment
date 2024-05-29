@@ -13,12 +13,12 @@ from sklearn.ensemble import RandomForestRegressor
 import matplotlib.pyplot as plt
 
 def read_data(input_file):
-    data = pd.read_pickle(infput_file)
+    data = pd.read_pickle(input_file)
     return data
 
 def rf_classifier(data):
         # Declare feature vector (X) and target variable (y)
-    X = data.drop(columns=['PKM2_inhibition','SMILES'], axis=1)             # What to do with the fact that we have PKM2 and ERK2 to predict?
+    X = data.drop(columns=['PKM2_inhibition','SMILES', 'ERK2_inhibition'], axis=1)             # What to do with the fact that we have PKM2 and ERK2 to predict?
     y = data['PKM2_inhibition']
 
     # Split data into test and train set
@@ -170,3 +170,7 @@ def hyperparameter_optimization(X_train, X_test, y_train, y_test):
 
 
 input_file = r"C:\Users\20212072\OneDrive - TU Eindhoven\Documents\Year3(2023-2024)\Kwartiel4\8CC00 - Advanced programming and biomedical data analysis\Group Assignment\calculated_descriptors.pkl"
+dataframe = read_data(input_file)
+feature_scores = rf_classifier(dataframe)
+#vis_feature_importance(rf_classifier(dataframe))
+print(feature_scores[feature_scores > 0.005])
