@@ -129,22 +129,22 @@ def add_all_descriptors_to_df(df):
         # Fingerprints
         fingerprints = calculate_fingerprints(mol)
 
-        # 3D Descriptors
-        mol_3d = generate_3d_conformers(mol)
-        if mol_3d:
-            descriptors_3d = calculate_3d_descriptors(mol_3d)
-        else:
-            descriptors_3d = {name: np.nan for name, _ in Descriptors3D.descList}
+        # # 3D Descriptors
+        # mol_3d = generate_3d_conformers(mol)
+        # if mol_3d:
+        #     descriptors_3d = calculate_3d_descriptors(mol_3d)
+        # else:
+        #     descriptors_3d = {name: np.nan for name, _ in Descriptors3D.descList}
 
-        all_data.append({**descriptors_2d, **fingerprints, **descriptors_3d})
+        all_data.append({**descriptors_2d, **fingerprints}) #, **descriptors_3d
     
     descriptors_df = pd.DataFrame(all_data)
     result_df = pd.concat([df.reset_index(drop=True), descriptors_df.reset_index(drop=True)], axis=1)
     return result_df
 
 # Useage
-data_path = r'Data\tested_molecules.csv'  # Replace with your actual file path
-mol_tested = read_inhibition_data(data_path)
-if mol_tested is not None:
-    mol_tested = add_all_descriptors_to_df(mol_tested)
-    print(mol_tested.head())
+# data_path = r'Data\tested_molecules.csv' 
+# mol_tested = read_inhibition_data(data_path)
+# if mol_tested is not None:
+#     mol_tested = add_all_descriptors_to_df(mol_tested)
+#     print(mol_tested.head())
