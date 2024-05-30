@@ -1,33 +1,28 @@
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import matplotlib.pyplot as plt
 
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.model_selection import KFold, cross_val_score
-from sklearn.feature_selection import SelectFromModel
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
-from sklearn.metrics import mean_squared_error
-from sklearn.ensemble import RandomForestRegressor
-import matplotlib.pyplot as plt
+
 
 def read_data(input_file):
     data = pd.read_pickle(input_file)
     return data
 
-def rf_classifier(data):
-        # Declare feature vector (X) and target variable (y)
-    X = data.drop(columns=['PKM2_inhibition','SMILES', 'ERK2_inhibition'], axis=1)             # What to do with the fact that we have PKM2 and ERK2 to predict?
-    y = data['PKM2_inhibition']
+def rf_classifier(train_data, test_data, amount_trees):
+    # Declare feature vector (X) and target variable (y)
+    X_train = train_data.drop(columns=['PKM2_inhibition','SMILES', 'ERK2_inhibition'], axis=1)
+    y_train = train_data['PKM2_inhibition']
 
-    # Split data into test and train set
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
-
+    X_test = test_data.drop(columns=['PKM2_inhibition','SMILES', 'ERK2_inhibition'], axis=1)
+    y_test = test_data['PKM2_inhibition']
 
     ## ---------------- Random Forest Classifier model with default parameters
-    # Instantiate the classifier (uses 10 decision trees on default)
-    rfc = RandomForestClassifier(random_state=0)
+    # Instantiate the classifier
+    rfc = RandomForestClassifier(n_estimators = amount_trees, random_state=0)
 
     # Fit the model
     rfc.fit(X_train, y_train)
@@ -35,9 +30,8 @@ def rf_classifier(data):
     # Predict the Test set results
     y_pred = rfc.predict(X_test)
 
-    # Check accuracy score (turns out to be 0.9810)
-    print('Model accuracy score with 10 decision-trees : {0:0.4f}'. format(accuracy_score(y_test, y_pred)))
-
+    # Calculate the accuracy score
+    acc_score = accuracy_score(y_test, y_pred)
 
     ## ---------------- Find important features with Random Forest model
     # Create the classifier with n_estimators = 100
@@ -48,9 +42,9 @@ def rf_classifier(data):
 
     # View the feature scores
     feature_scores = pd.Series(clf.feature_importances_, index=X_train.columns).sort_values(ascending=False)
-    return feature_scores
+    return y_test, y_pred, acc_score, clf
 
-# # Creating a seaborn bar plot
+# Creating a seaborn bar plot
 def vis_feature_importance(feature_scores):
     sns.barplot(x=feature_scores, y=feature_scores.index)
 
@@ -64,33 +58,10 @@ def vis_feature_importance(feature_scores):
     # Visualize the graph
     plt.show()
 
-# ## ---------------- Build the Random Forest model on selected features
-# # Declare feature vector and target variable
-def optimize_rf(data):
-    X = data.drop(columns=[], axis=1) # fill out the names of the features that can be neglected
-    y = data['PKM2_inhibition']
-
-    # Split data into training and testing sets
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.33, random_state = 42)
-
-    # Instantiate the classifier with n_estimators = 100
-    clf = RandomForestClassifier(random_state=0)
-
-    # Fit the model to the training set
-    clf.fit(X_train, y_train)
-
-    # Predict on the test set results
-    y_pred = clf.predict(X_test)
-
-    # Check accuracy score 
-    print('Model accuracy score with doors variable removed : {0:0.4f}'. format(accuracy_score(y_test, y_pred)))
-
-
 ## ---------------- Confustion Matrix
 # Print the Confusion Matrix and slice it into four pieces
-def create_confusion_matrix(y_test, y_pred):
+def create_confusion_matrix(y_test, y_pred, clf):
     cm = confusion_matrix(y_test, y_pred, labels=clf.classes_)
-    print('Confusion matrix\n', cm)
 
     # Plot confustion matrix
     disp = ConfusionMatrixDisplay(confusion_matrix=cm,
@@ -98,46 +69,9 @@ def create_confusion_matrix(y_test, y_pred):
     disp.plot()
     plt.show()
 
-## ---------------- Use the wrapping technique proposed in literature
-# Heb het nog niet uit kunnen testen, want daar was mijn laptop veel te lang mee bezig dus heb het afgekapt.
 
-# This part of the code executes the k-fold cross-validation. 
-# What needs yet to be coded:
-# After this iteration, remove the least 
-# important fraction of the variables and train another learning machine on the remainders. Again, keep
-# recording the CV test predictions. Repeat this removing of a fraction and compute the CV test predictions.
-# Aggregate the predictions from all k CV test sets and compute the aggregate error rate at each step down
-# in number of variables. Select p' that minimizes the curve of median error rate vs. nr of variables. 
-# If p' is selected, train a learning machine now on all the data, producing a ranking of the variables, and
-# take only the most important p' variables to input in the final learning machine.
-def wrapping(X_train, X_test, y_train, y_test):
-    k = 10  # Number of folds
-    kf = KFold(n_splits=k, shuffle=True, random_state=1)
-    errors = []
-
-    for train_index, test_index in kf.split(X):
-        # Split data into training and validation sets
-        X_train, X_test = X.iloc[train_index], X.iloc[test_index]
-        y_train, y_test = y.iloc[train_index], y.iloc[test_index]
-
-        # Train the Random Forest model
-        model = RandomForestClassifier(n_estimators=100, random_state=1)
-        model.fit(X_train, y_train)
-
-        # Predict on validation set
-        y_pred = model.predict(X_test)
-
-        # Compute the error metric (e.g., Mean Squared Error)
-        mse = mean_squared_error(y_test, y_pred)
-        print(mse)
-        errors.append(mse)
-
-    # Average error across all folds
-    average_error = sum(errors) / k
-    print(f'Average Mean Squared Error: {average_error}')
-
-
-# ## ---------------- Using random search to optimize random forest (lower accuracy than first model [0.9729])
+## ---------------- Using random search to optimize random forest (lower accuracy than first model [0.9729])
+# I DO NOT USE THIS FUNCTION BUT I DID NOT WANT TO REMOVE IT YET
 def hyperparameter_optimization(X_train, X_test, y_train, y_test):
     from sklearn.model_selection import RandomizedSearchCV
     RSEED = 50
@@ -169,8 +103,34 @@ def hyperparameter_optimization(X_train, X_test, y_train, y_test):
     print('Model accuracy score after hyperparameter tuning : {0:0.4f}'. format(accuracy_score(y_test, prediction)))
 
 
+def fingerprints_eval(train_data_file, test_data_file):
+    train_data = read_data(train_data_file)
+    print("The amount of features is equal to {}.".format(len(train_data.axes[1])))
+    test_data = read_data(test_data_file)
+    acc_score = 0
+    for amount_trees in range(1,20):
+        y_test, y_pred, accuracy, clf = rf_classifier(train_data, test_data, amount_trees)
+        if accuracy > acc_score:
+            acc_score = accuracy
+            best_model = [y_test, y_pred, clf, amount_trees]
+    print('The accuracy score of the best model is {} and it consists of {} trees.'.format(acc_score, best_model[3]))
+    return best_model[3]
+
+
+def fingerprints_model(train_data_file, test_data_file, amount_trees):
+    train_data = read_data(train_data_file)
+    test_data = read_data(test_data_file)
+    y_test, y_pred, accuracy, clf = rf_classifier(train_data, test_data, amount_trees)
+    print('The accuracy score is {}.'.format(accuracy))
+    create_confusion_matrix(y_test, y_pred, clf)
+    
+
+## ---------------- Call the functions to create the model
 input_file = r"C:\Users\20212072\OneDrive - TU Eindhoven\Documents\Year3(2023-2024)\Kwartiel4\8CC00 - Advanced programming and biomedical data analysis\Group Assignment\calculated_descriptors.pkl"
-dataframe = read_data(input_file)
-feature_scores = rf_classifier(dataframe)
-#vis_feature_importance(rf_classifier(dataframe))
-print(feature_scores[feature_scores > 0.005])
+train_data_file = r"C:\Users\20212072\OneDrive - TU Eindhoven\Documents\Year3(2023-2024)\Kwartiel4\8CC00 - Advanced programming and biomedical data analysis\Group Assignment\train_fingerprints.pkl"
+test_data_file = r"C:\Users\20212072\OneDrive - TU Eindhoven\Documents\Year3(2023-2024)\Kwartiel4\8CC00 - Advanced programming and biomedical data analysis\Group Assignment\test_fingerprints.pkl"
+best_model_trees = fingerprints_eval(train_data_file, test_data_file)
+fingerprints_model(train_data_file, test_data_file, best_model_trees)
+
+# So far, the functions can be used to predict PKM2 inhibition. Now I need to elaborate and make sure that we can combine
+# predictions for the inhibition of PKM2 and ERK2. 
