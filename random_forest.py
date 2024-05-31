@@ -174,12 +174,12 @@ def find_best_param(train_data_file, test_data_file):
 input_file = r"C:\Users\20212072\OneDrive - TU Eindhoven\Documents\Year3(2023-2024)\Kwartiel4\8CC00 - Advanced programming and biomedical data analysis\Group Assignment\calculated_descriptors.pkl"
 train_data_file = r"C:\Users\20212072\OneDrive - TU Eindhoven\Documents\Year3(2023-2024)\Kwartiel4\8CC00 - Advanced programming and biomedical data analysis\Group Assignment\train_fingerprints.pkl"
 test_data_file = r"C:\Users\20212072\OneDrive - TU Eindhoven\Documents\Year3(2023-2024)\Kwartiel4\8CC00 - Advanced programming and biomedical data analysis\Group Assignment\test_fingerprints.pkl"
-# best_model_trees = fingerprints_eval(train_data_file, test_data_file)
-# fingerprints_model(train_data_file, test_data_file, best_model_trees)
+best_model_trees = fingerprints_eval(train_data_file, test_data_file)
+fingerprints_model(train_data_file, test_data_file, best_model_trees)
 
 # I tried to optimize the parameters but the accuracies never get higher than the original model with the standard parameters.
 # 4 trees turned out to be best.
-best_model, best_params, accuracy = find_best_param(train_data_file, test_data_file)
+# best_model, best_params, accuracy = find_best_param(train_data_file, test_data_file)
 
 
 # REMARK: The model does never predict inhibition for a molecule of the test set. Why? Is this because the test set contains so little 
