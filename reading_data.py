@@ -136,10 +136,13 @@ def add_all_descriptors_to_df(df, add_fingerprints=True, add_2d_discriptors=True
         #     descriptors_3d = calculate_3d_descriptors(mol_3d)
         # else:
         #     descriptors_3d = {name: np.nan for name, _ in Descriptors3D.descList}
-        if add_fingerprints:
-            all_data.append({**descriptors_2d, **fingerprints}) #, **descriptors_3D
-        else:
+        if add_fingerprints and add_2d_discriptors:
+            all_data.append({**descriptors_2d, **fingerprints})
+            
+        elif add_2d_discriptors:
             all_data.append({**descriptors_2d})
+        elif add_fingerprints:
+            all_data.append({**fingerprints})
     
     descriptors_df = pd.DataFrame(all_data)
     result_df = pd.concat([df.reset_index(drop=True), descriptors_df.reset_index(drop=True)], axis=1)
