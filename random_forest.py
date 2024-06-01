@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.multioutput import MultiOutputClassifier
+from sklearn.model_selection import RandomizedSearchCV
 from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay
 
 
@@ -96,36 +97,36 @@ def create_confusion_matrix(y_test, y_pred, labels):
 
 ## ---------------- Using random search to optimize random forest
 def hyperparameter_optimization(X_train, X_test, y_train, y_test):
-    from sklearn.model_selection import RandomizedSearchCV
-    RSEED = 50
-
-    # Hyperparameter grid
+    # Hyperparameter grid excluding 'n_estimators'
     param_grid = {
-        'max_depth': [None] + list(range(3, 21)),
-        'max_features': ['sqrt', 'log2', None] + list(np.arange(0.1, 1.1, 0.1)), 
-        'max_leaf_nodes': [None] + list(range(10, 101, 10)), 
-        'min_samples_split': [2, 5, 10, 15], 
-        'bootstrap': [True, False]
-        }
+        'estimator__max_depth': [None] + list(np.linspace(3, 100, num=100).astype(int)),       # Maximum number of levels in tree
+        'estimator__max_features': ['sqrt', 'log2', None] + list(np.arange(0.1, 1.1, 0.1)),  # Number of features to consider at every split
+        'estimator__max_leaf_nodes': [None] + list(np.linspace(10, 100, num=100).astype(int)), # How many leaf nodes can be visited
+        'estimator__min_samples_split': [2, 5, 10, 15],                                     # Minimum number of samples required to split a node
+        'estimator__bootstrap': [True, False]                                                # Method of selecting samples for training each tree
+    }
 
     # Estimator for use in random search
-    estimator = RandomForestClassifier(n_estimators=4)#, random_state = RSEED)
+    rfc = RandomForestClassifier(n_estimators=4)  # Using 4 trees as determined
+    multi_target_rfc = MultiOutputClassifier(rfc, n_jobs=-1)
 
     # Create the random search model
-    # n_iter = number of different combinations to try
-    # cv = number of folds used for cross validation
-    rs = RandomizedSearchCV(estimator, param_grid, n_jobs = -1, 
-                            scoring = 'roc_auc', cv = 5, 
-                            n_iter = 15, verbose = 1)#, random_state=RSEED)
+    rs = RandomizedSearchCV(multi_target_rfc, param_grid, n_jobs=-1, 
+                            scoring='accuracy', cv=3, 
+                            n_iter=50, verbose=1, random_state=None)  # Removing fixed random_state
 
     # Fit 
     rs.fit(X_train, y_train)
     best_model = rs.best_estimator_
-    best_params = rs.best_params_
+    best_params = rs.best_params_  # Extracting best parameters
     prediction = best_model.predict(X_test)
-    accuracy = accuracy_score(y_test, prediction) 
-    print('Model accuracy score after hyperparameter tuning : {0:0.4f}'. format(accuracy))
-    return best_model, best_params, accuracy
+    
+    # Calculate the accuracy score for each target
+    accuracy_scores = [accuracy_score(y_test.iloc[:, i], prediction[:, i]) for i in range(y_test.shape[1])]
+    avg_accuracy_score = sum(accuracy_scores) / len(accuracy_scores)
+    print('Model accuracy score after hyperparameter tuning: {0:0.4f}'.format(avg_accuracy_score))
+
+    return best_model, best_params, avg_accuracy_score
 
 
 def fingerprints_eval(train_data_file, test_data_file):
@@ -174,12 +175,12 @@ def find_best_param(train_data_file, test_data_file):
 input_file = r"C:\Users\20212072\OneDrive - TU Eindhoven\Documents\Year3(2023-2024)\Kwartiel4\8CC00 - Advanced programming and biomedical data analysis\Group Assignment\calculated_descriptors.pkl"
 train_data_file = r"C:\Users\20212072\OneDrive - TU Eindhoven\Documents\Year3(2023-2024)\Kwartiel4\8CC00 - Advanced programming and biomedical data analysis\Group Assignment\train_fingerprints.pkl"
 test_data_file = r"C:\Users\20212072\OneDrive - TU Eindhoven\Documents\Year3(2023-2024)\Kwartiel4\8CC00 - Advanced programming and biomedical data analysis\Group Assignment\test_fingerprints.pkl"
-best_model_trees = fingerprints_eval(train_data_file, test_data_file)
-fingerprints_model(train_data_file, test_data_file, best_model_trees)
+# best_model_trees = fingerprints_eval(train_data_file, test_data_file)
+# fingerprints_model(train_data_file, test_data_file, best_model_trees)
 
 # I tried to optimize the parameters but the accuracies never get higher than the original model with the standard parameters.
 # 4 trees turned out to be best.
-# best_model, best_params, accuracy = find_best_param(train_data_file, test_data_file)
+best_model, best_params, avg_accuracy = find_best_param(train_data_file, test_data_file)
 
 
 # REMARK: The model does never predict inhibition for a molecule of the test set. Why? Is this because the test set contains so little 
