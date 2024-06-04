@@ -89,9 +89,9 @@ def rf_classifier(train_data, test_data, amount_trees):
         ]
     avg_bal_acc_score = sum(bal_acc_scores) / len(bal_acc_scores)
     print('Model balanced accuracy scores are:', bal_acc_scores)
-    print('Model average balanced accuracy score: {0:0.4f}'.format(
-        avg_bal_acc_score)
-        )
+    # print('Model average balanced accuracy score: {0:0.4f}'.format(
+    #     avg_bal_acc_score)
+    #     )
 
     return y_test, y_pred, avg_bal_acc_score, multi_target_rfc
 
@@ -306,13 +306,14 @@ def fingerprints_model(train_data_file, test_data_file, amount_trees):
     """
     train_data = read_data(train_data_file)
     test_data = read_data(test_data_file)
-    y_test, y_pred, avg_precision_score, multi_target_rfc = rf_classifier(
+    y_test, y_pred, avg_bal_acc_score, multi_target_rfc = rf_classifier(
         train_data, test_data, amount_trees
         )
-    print('The balanced accuracy score is {}.'.format(avg_precision_score))
+    print('The balanced accuracy score is {}.'.format(avg_bal_acc_score))
     create_confusion_matrix(y_test, y_pred, [
         'PKM2_inhibition', 'ERK2_inhibition']
         )
+    return avg_bal_acc_score
 
 def find_best_param(train_data_file, test_data_file):
     """
@@ -389,7 +390,11 @@ avg_bal_acc_scorer = make_scorer(avg_accuracy, greater_is_better=True)
 #best_model_trees = fingerprints_eval(train_data_file, test_data_file)
 
 # Create and fit the model with the determined amount of trees.
-fingerprints_model(train_data_file, test_data_file, 4)
+average_scores = []
+for i in range(1,20):
+    score = fingerprints_model(train_data_file, test_data_file, i)
+    average_scores.append(score)
+print(average_scores)
 
 # I tried to optimize the parameters but the accuracies never get higher 
 # than the original model with the standard parameters.
