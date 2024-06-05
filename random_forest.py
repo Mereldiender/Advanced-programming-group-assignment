@@ -383,6 +383,14 @@ def find_best_param(train_data_file, test_data_file):
 train_data_file = r"C:\Users\20212072\OneDrive - TU Eindhoven\Documents\Year3(2023-2024)\Kwartiel4\8CC00 - Advanced programming and biomedical data analysis\Group Assignment\train_fingerprints.pkl"
 test_data_file = r"C:\Users\20212072\OneDrive - TU Eindhoven\Documents\Year3(2023-2024)\Kwartiel4\8CC00 - Advanced programming and biomedical data analysis\Group Assignment\test_fingerprints.pkl"
 
+train = read_data(train_data_file)
+test = read_data(test_data_file)
+print(len(train))
+print(train['PKM2_inhibition'].sum())
+print(train['ERK2_inhibition'].sum())
+print(len(test))
+print(test['PKM2_inhibition'].sum())
+print(test['ERK2_inhibition'].sum())
 # Create a custom scorer for RandomizedSearchCV
 avg_bal_acc_scorer = make_scorer(avg_accuracy, greater_is_better=True)
 
@@ -390,11 +398,11 @@ avg_bal_acc_scorer = make_scorer(avg_accuracy, greater_is_better=True)
 #best_model_trees = fingerprints_eval(train_data_file, test_data_file)
 
 # Create and fit the model with the determined amount of trees.
-average_scores = []
-for i in range(1,20):
-    score = fingerprints_model(train_data_file, test_data_file, i)
-    average_scores.append(score)
-print(average_scores)
+# average_scores = []
+# for i in range(1,20):
+#     score = fingerprints_model(train_data_file, test_data_file, i)
+#     average_scores.append(score)
+# print(average_scores)
 
 # I tried to optimize the parameters but the accuracies never get higher 
 # than the original model with the standard parameters.
