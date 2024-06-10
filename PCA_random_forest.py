@@ -9,7 +9,6 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import RandomizedSearchCV, KFold
 from sklearn.metrics import balanced_accuracy_score, confusion_matrix, ConfusionMatrixDisplay
 
-
 def read_data(input_file):
     """
     Reads the input file and returns a dataframe.
@@ -27,74 +26,14 @@ def read_data(input_file):
     data = pd.read_pickle(input_file)
     return data
 
-
-def rf_classifier(inhibition, train_data, test_data, amount_trees):
-    """
-    Returns the random forest classifier model used to predict the 
-    inhibition of certain molecules to kinases (PKM2 or ERK2).
-
-    Parameters
-    ----------
-    inhibition : str
-        Name of the variable to be predicted
-    train_data : dataframe
-        Part of the input data used to train the model
-    test_data : dataframe
-        Part of the input data used to test the model
-    amount_trees : int
-        The amount of trees used for the random forest classifier
-
-    Returns
-    -------
-    y_test : dataframe
-        The output variables to be predicted in a dataframe
-    y_pred : list of lists
-        The output predicted by the rf classifier
-    bal_acc_score : float
-        The average accuracy score of the rf classifier
-    rfc : RandomForestClassifier
-        The random forest classifier model
-
-    """
-    # Declare feature vector (X) and target variable (y)
-    X_train = train_data.drop(columns=[
-        'PKM2_inhibition','SMILES', 'ERK2_inhibition'], axis=1
-        )
-    y_train = train_data[inhibition]
-
-    X_test = test_data.drop(columns=[
-        'PKM2_inhibition','SMILES', 'ERK2_inhibition'], axis=1
-        )
-    y_test = test_data[inhibition]
-
-    ## ---------------- Random Forest Classifier model with default parameters
-    # Instantiate the classifier
-    # Random_state set to zero to make sure the model returns the same every time
-    rfc = RandomForestClassifier(n_estimators = amount_trees, 
-                                 random_state=0
-                                 )
-    # Fit the model
-    rfc.fit(X_train, y_train)
-
-    # Predict the Test set results
-    y_pred = rfc.predict(X_test)
-
-    # Calculate the average precision score for each target
-    bal_acc_score = balanced_accuracy_score(y_test, y_pred)
-    print('Model balanced accuracy score is:', bal_acc_score)
-
-    return y_test, y_pred, bal_acc_score, rfc
-
-
 ## ---------------- Confustion Matrix
 # Print the Confusion Matrix and slice it into four pieces
-def create_confusion_matrix(y_test, y_pred, rfc):
+def create_confusion_matrix(y_test, y_pred, rfc, title):
     cm = confusion_matrix(y_test, y_pred, labels=rfc.classes_)
 
-    # Plot confustion matrix
-    disp = ConfusionMatrixDisplay(confusion_matrix=cm,
-                                display_labels=rfc.classes_)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=rfc.classes_)
     disp.plot()
+    plt.title(title)
     plt.show()
 
 
@@ -206,7 +145,7 @@ def cross_validation_model_evaluation(inhibition, train_data_file):
     return models_CV
 
 
-def rf_classifier_PKM2(train_data, test_data, model):
+def rf_classifier(train_data, test_data, model, kinase):
     """
     Returns the random forest classifier model used to predict the 
     inhibition of certain molecules to kinases (PKM2 or ERK2).
@@ -217,6 +156,11 @@ def rf_classifier_PKM2(train_data, test_data, model):
         Part of the input data used to train the model
     test_data : dataframe
         Part of the input data used to test the model
+    kinase : string
+        Kinase that is inhibited
+    model : instance of RandomForestClassifier
+        Random forest model
+
 
     Returns
     -------
@@ -225,21 +169,27 @@ def rf_classifier_PKM2(train_data, test_data, model):
     y_pred : list of lists
         The output predicted by the rf classifier
     bal_acc_score : float
-        The average accuracy score of the rf classifier
+        The balanced accuracy score of the rf classifier
     rfc : RandomForestClassifier
         The random forest classifier model
 
     """
     # Declare feature vector (X) and target variable (y)
+
     X_train = train_data.drop(columns=[
         'PKM2_inhibition','SMILES', 'ERK2_inhibition'], axis=1
         )
-    y_train = train_data['PKM2_inhibition']
 
     X_test = test_data.drop(columns=[
         'PKM2_inhibition','SMILES', 'ERK2_inhibition'], axis=1
         )
-    y_test = test_data['PKM2_inhibition']
+    
+    if kinase == 'PKM2':
+        y_train = train_data['PKM2_inhibition']
+        y_test = test_data['PKM2_inhibition']
+    elif kinase == 'ERK2':
+        y_train = train_data['ERK2_inhibition']
+        y_test = test_data['ERK2_inhibition']
 
     rfc = model
     # Fit the model
@@ -251,57 +201,9 @@ def rf_classifier_PKM2(train_data, test_data, model):
     # Calculate the average precision score for each target
     bal_acc_score = balanced_accuracy_score(y_test, y_pred)
     print('Model balanced accuracy score is:', bal_acc_score)
-    create_confusion_matrix(y_test, y_pred, rfc)
-
-    return y_test, y_pred, bal_acc_score, rfc
-
-
-def rf_classifier_ERK2(train_data, test_data, model):
-    """
-    Returns the random forest classifier model used to predict the 
-    inhibition of certain molecules to kinases (PKM2 or ERK2).
-
-    Parameters
-    ----------
-    train_data : dataframe
-        Part of the input data used to train the model
-    test_data : dataframe
-        Part of the input data used to test the model
-
-    Returns
-    -------
-    y_test : dataframe
-        The output variables to be predicted in a dataframe
-    y_pred : list of lists
-        The output predicted by the rf classifier
-    bal_acc_score : float
-        The average accuracy score of the rf classifier
-    rfc : RandomForestClassifier
-        The random forest classifier model
-
-    """
-    # Declare feature vector (X) and target variable (y)
-    X_train = train_data.drop(columns=[
-        'PKM2_inhibition','SMILES', 'ERK2_inhibition'], axis=1
-        )
-    y_train = train_data['ERK2_inhibition']
-
-    X_test = test_data.drop(columns=[
-        'PKM2_inhibition','SMILES', 'ERK2_inhibition'], axis=1
-        )
-    y_test = test_data['ERK2_inhibition']
-
-    rfc = model
-    # Fit the model
-    rfc.fit(X_train, y_train)
-
-    # Predict the Test set results
-    y_pred = rfc.predict(X_test)
-
-    # Calculate the average precision score for each target
-    bal_acc_score = balanced_accuracy_score(y_test, y_pred)
-    print('Model balanced accuracy score is:', bal_acc_score)
-    create_confusion_matrix(y_test, y_pred, rfc)
+    
+    title_confusion_matrix = 'Confusion matrix of inhibition on ' + kinase
+    create_confusion_matrix(y_test, y_pred, rfc, '')
 
     return y_test, y_pred, bal_acc_score, rfc
 
@@ -311,24 +213,22 @@ def rf_classifier_ERK2(train_data, test_data, model):
 # training data, train_data_file only contains the training data and
 # test_data_file only contains the data used for testing.
 
-# r"C:\Users\20212072\OneDrive - TU Eindhoven\Documents\Year3(2023-2024)\Kwartiel4\8CC00 - Advanced programming and biomedical data analysis\Group Assignment\calculated_descriptors.pkl"
-# r"C:\Users\20212072\OneDrive - TU Eindhoven\Documents\Year3(2023-2024)\Kwartiel4\8CC00 - Advanced programming and biomedical data analysis\Group Assignment\train_fingerprints.pkl"
-# r"C:\Users\20212072\OneDrive - TU Eindhoven\Documents\Year3(2023-2024)\Kwartiel4\8CC00 - Advanced programming and biomedical data analysis\Group Assignment\test_fingerprints.pkl"
-# input_file = 
-train_data_file = r"C:\Users\20212072\OneDrive - TU Eindhoven\Documents\Year3(2023-2024)\Kwartiel4\8CC00 - Advanced programming and biomedical data analysis\Group Assignment\training_fingerprints_balanced.pkl"
-test_data_file = r"C:\Users\20212072\OneDrive - TU Eindhoven\Documents\Year3(2023-2024)\Kwartiel4\8CC00 - Advanced programming and biomedical data analysis\Group Assignment\test_fingerprints_balanced.pkl"
+train_data_file = 'C:\\Users\\20212435\\Documents\\GitHub\\Group assignment\\Advanced-programming-group-assignment\\train_descriptors_balanced_pc_80_2.pkl'
+test_data_file = 'C:\\Users\\20212435\\Documents\\GitHub\\Group assignment\\Advanced-programming-group-assignment\\train_descriptors_balanced_pc_80.pkl'
 
 models_CV_PKM2 = cross_validation_model_evaluation('PKM2_inhibition', train_data_file)
 models_CV_ERK2 = cross_validation_model_evaluation('ERK2_inhibition', train_data_file)
 
+print(models_CV_PKM2)
+
 i = 1
 for rfc_model in models_CV_PKM2:
     model = rfc_model['Model {}'.format(i)]
-    y_test, y_pred, bal_acc_score, rfc = rf_classifier_PKM2(read_data(train_data_file), read_data(test_data_file), model)
+    y_test, y_pred, bal_acc_score, rfc = rf_classifier(read_data(train_data_file), read_data(test_data_file), model, 'PKM2')
     i += 1
     
 i = 1
 for rfc_model in models_CV_ERK2:
     model = rfc_model['Model {}'.format(i)]
-    y_test, y_pred, bal_acc_score, rfc = rf_classifier_ERK2(read_data(train_data_file), read_data(test_data_file), model)
+    y_test, y_pred, bal_acc_score, rfc = rf_classifier(read_data(train_data_file), read_data(test_data_file), model, 'ERK2')
     i += 1
