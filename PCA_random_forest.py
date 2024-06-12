@@ -1,4 +1,4 @@
-# Perform random forest on PCA components
+## Perform random forest on PCA components
 
 import numpy as np
 import pandas as pd
@@ -8,6 +8,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import RandomizedSearchCV, KFold
 from sklearn.metrics import balanced_accuracy_score, confusion_matrix, ConfusionMatrixDisplay
 
+## ---------------- Read file do dataframe
 def read_data(input_file):
     """
     Reads the input file and returns a dataframe.
@@ -24,16 +25,6 @@ def read_data(input_file):
     """
     data = pd.read_pickle(input_file)
     return data
-
-## ---------------- Confustion Matrix
-# Print the Confusion Matrix and slice it into four pieces
-def create_confusion_matrix(y_test, y_pred, rfc, title):
-    cm = confusion_matrix(y_test, y_pred, labels=rfc.classes_)
-
-    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=rfc.classes_)
-    disp.plot()
-    plt.title(title)
-    plt.show()
 
 
 ## ---------------- Using random search to optimize random forest
@@ -102,6 +93,7 @@ def find_hyperparameters(X_train, X_test, y_train, y_test):
     return best_model, best_params, bal_acc_score
 
 
+## ---------------- Find five models by use of cross validation
 def find_models(inhibition, train_data_file):
     """
     Performs cross-validation on the train dataset,
@@ -110,7 +102,7 @@ def find_models(inhibition, train_data_file):
     Parameters
     ----------
     inhibition : str
-        The name of the variable to be predicted
+        The name of the variable (kinase) to be predicted
     train_data_file : str
         The name of the file that contains the data
     
@@ -149,13 +141,24 @@ def find_models(inhibition, train_data_file):
     return models_CV
 
 
+## ---------------- Confusion Matrix
+# Print the Confusion Matrix and slice it into four pieces
+def create_confusion_matrix(y_test, y_pred, rfc, title):
+    cm = confusion_matrix(y_test, y_pred, labels=rfc.classes_)
+
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=rfc.classes_)
+    disp.plot()
+    plt.title(title)
+    plt.show()
+
+
 ## ---------------- Call the functions to create the models
 # Insert paths to files where input_file contains all the testing and
 # training data, train_data_file only contains the training data and
 # test_data_file only contains the data used for testing.
 
-train_data_file = 'C:\\Users\\20212435\\Documents\\GitHub\\Group assignment\\Advanced-programming-group-assignment\\train_descriptors_balanced_pc_90_2.pkl'
-test_data_file = 'C:\\Users\\20212435\\Documents\\GitHub\\Group assignment\\Advanced-programming-group-assignment\\train_descriptors_balanced_pc_90.pkl'
+train_data_file = 'C:\\Users\\20212435\\Documents\\GitHub\\Group assignment\\Advanced-programming-group-assignment\\training_descriptors_balanced.pkl'
+test_data_file = 'C:\\Users\\20212435\\Documents\\GitHub\\Group assignment\\Advanced-programming-group-assignment\\test_descriptors_balanced.pkl'
 
 models_CV_PKM2 = find_models('PKM2_inhibition', train_data_file)
 models_CV_ERK2 = find_models('ERK2_inhibition', train_data_file)
