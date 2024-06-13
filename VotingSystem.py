@@ -8,13 +8,11 @@ Created on Wed Jun 12 13:02:27 2024
 import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 from sklearn.svm import SVC
 import matplotlib.pyplot as plt
-from sklearn.model_selection import RandomizedSearchCV, KFold, GridSearchCV
-from sklearn.metrics import balanced_accuracy_score, ConfusionMatrixDisplay
+from sklearn.model_selection import RandomizedSearchCV, KFold,train_test_split
+from sklearn.metrics import balanced_accuracy_score, ConfusionMatrixDisplay,confusion_matrix
 import xgboost as xgb
-from sklearn.model_selection import train_test_split, StratifiedKFold
 from sklearn.utils.class_weight import compute_sample_weight
 
 ## ---------------- Read file do dataframe
@@ -138,32 +136,21 @@ def find_models(inhibition, train_data_file):
         y_train, y_test = y.iloc[train_index], y.iloc[test_index]
 
         best_model, best_params, bal_acc_score = find_hyperparameters(X_train, X_test, y_train, y_test)
-        y_pred = best_model.predict(X_test)
-        bal_acc_score = balanced_accuracy_score(y_test, y_pred)
-
-        # save the model and predicted values
-        models_CV.append({'Model {}'.format(i): best_model, 
-        'y_test': y_test, 'y_pred': y_pred, 'BAcc': bal_acc_score})
+        models_CV.append(best_model)
         
         i += 1
-    
+        
     return models_CV
 
 def models_svm(model,inhibition, train_data_file):
     data = read_data(train_data_file)
     # Features
     X = data.drop(columns=['PKM2_inhibition','SMILES', 'ERK2_inhibition'], axis=1)
-    
     # Values to be predicted
     y = data[inhibition]
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=10)
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
-    bal_acc_score = balanced_accuracy_score(y_test, y_pred)
-    models_CV = []
-    models_CV.append({'Model 1': model, 
-    'y_test': y_test, 'y_pred': y_pred, 'BAcc': bal_acc_score})    
-    return models_CV
+    model.fit(X_train, y_train)   
+    return model
 
 def models_xgboost(model,inhibition, train_data_file):
     data = read_data(train_data_file)
@@ -176,13 +163,8 @@ def models_xgboost(model,inhibition, train_data_file):
     
     # Compute class weights
     class_weights = compute_sample_weight(class_weight='balanced', y=y_train)
-    model.fit(X_train, y_train,sample_weight=class_weights)
-    y_pred = model.predict(X_test)
-    bal_acc_score = balanced_accuracy_score(y_test, y_pred)
-    models_CV = []
-    models_CV.append({'Model 1': model, 
-    'y_test': y_test, 'y_pred': y_pred, 'BAcc': bal_acc_score})    
-    return models_CV
+    model.fit(X_train, y_train,sample_weight=class_weights)        
+    return model
 
 ## ---------------- Confusion Matrix
 # Print the Confusion Matrix and slice it into four pieces
@@ -204,9 +186,26 @@ def average_predictionRF(models_CV):
     rf_cv_preds_stacked = np.column_stack(cv_predictions)
     rf_avg_preds = np.mean(rf_cv_preds_stacked, axis=1)
 
-    # Convert averaged predictions to binary (0 or 1) based on the 0.5 threshold
-    rf_final_preds = (rf_avg_preds >= 0.2).astype(int)
+    # Convert averaged predictions to binary (0 or 1) based on the 0.4 threshold
+    rf_final_preds = (rf_avg_preds >= 0.4).astype(int)
     return rf_final_preds
+
+def predict_model_training(models_CV, X_test,y_test): #used during training when you have the y_test
+    Models_pred=[]
+    for fitted_model in models_CV:
+        y_pred = fitted_model.predict(X_test)
+        bal_acc_score = balanced_accuracy_score(y_test, y_pred)
+        Models_pred.append({'Model 1': fitted_model, 
+                          'y_test': y_test, 'y_pred': y_pred, 'BAcc': bal_acc_score})
+    return Models_pred
+
+def predict_model(models_CV, X_test):
+    Models_pred=[]
+    for fitted_model in models_CV:
+        y_pred = fitted_model.predict(X_test)
+        Models_pred.append({'Model 1': fitted_model, 
+                           'y_pred': y_pred})
+    return Models_pred
 
 ## ---------------- Call the functions to create the models
 # Insert paths to files where input_file contains all the testing and
@@ -214,100 +213,99 @@ def average_predictionRF(models_CV):
 # test_data_file only contains the data used for testing.
 
 train_data_file = 'C:\\Users\\20192547\\OneDrive - TU Eindhoven\\Documents\\JAAR 5\\Advanced programming and biomedical data analysis\\Group assignment\\train_descriptors_balanced_pc_80.pkl'
-test_data_file = 'C:\\Users\\20212435\\Documents\\GitHub\\Group assignment\\Advanced-programming-group-assignment\\test_descriptors_balanced.pkl'
-predictions_PKM2={}
-predictions_ERK2={}
+train_data_file_bin= 'C:\\Users\\20192547\\OneDrive - TU Eindhoven\\Documents\\JAAR 5\\Advanced programming and biomedical data analysis\\Group assignment\\training_fingerprints_balanced.pkl'
+#test_data_file = 'C:\\Users\\20212435\\Documents\\GitHub\\Group assignment\\Advanced-programming-group-assignment\\test_descriptors_balanced.pkl'
 
-#NON-BINAIR descriptor models
-#______________RANDOM FOREST______________
+#______________TRAIN descriptor models______________
+# Non-binaire descriptor models
+#_______RANDOM FOREST______
 # PKM2 Models
 models_CV_PKM2 = find_models('PKM2_inhibition', train_data_file)
-for i, rfc_model in enumerate(models_CV_PKM2, start=1):
-    model_key = f'Model {i}'
-    model = rfc_model[model_key]
-    y_test = rfc_model['y_test']
-    y_pred = rfc_model['y_pred']
-    bal_acc_score = rfc_model['BAcc']
-    #create_confusion_matrix(y_test, y_pred, model, f"Confusion Matrix for PKM2 - Model {i}")
-    if i==5:
-        y_pred_last_padded = np.append(y_pred, [0])
-        models_CV_PKM2[4]['y_pred'] = y_pred_last_padded
-
-rf_pred_pkm2=average_predictionRF(models_CV_PKM2)
-predictions_PKM2['RandomForest']=rf_pred_pkm2
-
 # ERK2 Models
 models_CV_ERK2 = find_models('ERK2_inhibition', train_data_file)
-for i, rfc_model in enumerate(models_CV_ERK2, start=1):
-    model_key = f'Model {i}'
-    model = rfc_model[model_key]
-    y_test = rfc_model['y_test']
-    y_pred = rfc_model['y_pred']
-    bal_acc_score = rfc_model['BAcc']
-    #create_confusion_matrix(y_test, y_pred, model, f"Confusion Matrix for ERK2 - Model {i}")
-    if i==5:
-        y_pred_last_padded = np.append(y_pred, [0])
-        models_CV_ERK2[4]['y_pred'] = y_pred_last_padded
-   
-rf_pred_erk2=average_predictionRF(models_CV_ERK2)
-predictions_ERK2['RandomForest']=rf_pred_erk2
-#______________SVM______________
+
+
+#_______SVM_______
 # PKM2 Models
 svm_PKM2 = SVC(class_weight='balanced', probability=True, gamma=0.5, C=1)
 models_SVM_PKM2 = models_svm(svm_PKM2,'PKM2_inhibition', train_data_file)
-for i, rfc_model in enumerate(models_SVM_PKM2, start=1):
-    model_key = f'Model {i}'
-    model = rfc_model[model_key]
-    y_test = rfc_model['y_test']
-    y_pred = rfc_model['y_pred']
-    bal_acc_score = rfc_model['BAcc']
-    #print(f'Model {i} balanced accuracy score for ERK2: {bal_acc_score}')
-    #create_confusion_matrix(y_test, y_pred, model, f"Confusion Matrix for svm_PKM2 - Model {i}")
-    
-predictions_PKM2['SVM']=models_SVM_PKM2[0]['y_pred']    
-
 # ERK2 Models
 svm_ERK2 = SVC(class_weight='balanced', probability=True, gamma=1, C=1)
-models_SVM_ERK2 = models_svm(svm_ERK2,'ERK2_inhibition', train_data_file)
-for i, rfc_model in enumerate(models_SVM_ERK2, start=1):
-    model_key = f'Model {i}'
-    model = rfc_model[model_key]
-    y_test = rfc_model['y_test']
-    y_pred = rfc_model['y_pred']
-    bal_acc_score = rfc_model['BAcc']
-    #print(f'Model {i} balanced accuracy score for ERK2: {bal_acc_score}')
-    #create_confusion_matrix(y_test, y_pred, model, f"Confusion Matrix for svm_ERK2 - Model {i}")
-    
-predictions_ERK2['SVM']=models_SVM_ERK2[0]['y_pred'] 
-   
-#______________XGBOOST______________
+models_SVM_ERK2= models_svm(svm_ERK2,'ERK2_inhibition', train_data_file)
+
+#_______XGBOOST_______
 # PKM2 Models
 xgb_PKM2 = xgb.XGBClassifier(objective='binary:logistic', eval_metric='logloss')
 models_xgb_PKM2=models_xgboost(xgb_PKM2,'PKM2_inhibition', train_data_file)
-for i, rfc_model in enumerate(models_xgb_PKM2, start=1):
-    model_key = f'Model {i}'
-    model = rfc_model[model_key]
-    y_test = rfc_model['y_test']
-    y_pred = rfc_model['y_pred']
-    bal_acc_score = rfc_model['BAcc']
-    #print(f'Model {i} balanced accuracy score for ERK2: {bal_acc_score}')
-    #create_confusion_matrix(y_test, y_pred, model, f"Confusion Matrix for xgb_ERK2 - Model {i}")
-predictions_PKM2['SVM']=models_xgb_PKM2[0]['y_pred'] 
-
 # ERK2 Models
 xgb_ERK2 = xgb.XGBClassifier(objective='binary:logistic', eval_metric='logloss')
 models_xgb_ERK2=models_xgboost(xgb_ERK2,'ERK2_inhibition', train_data_file)
-for i, rfc_model in enumerate(models_xgb_ERK2, start=1):
-    model_key = f'Model {i}'
-    model = rfc_model[model_key]
-    y_test = rfc_model['y_test']
-    y_pred = rfc_model['y_pred']
-    bal_acc_score = rfc_model['BAcc']
-    #print(f'Model {i} balanced accuracy score for ERK2: {bal_acc_score}')
-    #create_confusion_matrix(y_test, y_pred, model, f"Confusion Matrix for xgb_ERK2 - Model {i}")
-predictions_ERK2['SVM']=models_xgb_ERK2[0]['y_pred'] 
-    
-#____VOTING_____
+
+# Binaire descriptor models
+#_______RANDOM FOREST______
+# PKM2 Models
+models_CV_PKM2_bin = find_models('PKM2_inhibition', train_data_file_bin)
+# ERK2 Models
+models_CV_ERK2_bin = find_models('ERK2_inhibition', train_data_file_bin)
+
+
+#______________PREDICT NON-BINAIR descriptor models______________
+predictions_PKM2={}
+predictions_ERK2={}
+# Get test data
+#for non-binaire models
+data = read_data(train_data_file)
+X = data.drop(columns=['PKM2_inhibition','SMILES', 'ERK2_inhibition'], axis=1)
+y = data['PKM2_inhibition']
+_, X_test, _, _ = train_test_split(X, y, test_size=0.2, random_state=10)
+#for binair models
+data = read_data(train_data_file_bin)
+X = data.drop(columns=['PKM2_inhibition','SMILES', 'ERK2_inhibition'], axis=1)
+y = data['PKM2_inhibition']
+_, X_test_bin, _, _ = train_test_split(X, y, test_size=0.2, random_state=10)
+
+#_______RANDOM FOREST Non-binair_______
+# PKM2 Models
+CV_pred_PKM2=predict_model(models_CV_PKM2, X_test)   
+rf_pred_pkm2=average_predictionRF(CV_pred_PKM2)
+predictions_PKM2['RandomForest']=rf_pred_pkm2
+# ERK2 Models
+CV_pred_ERK2=predict_model(models_CV_ERK2, X_test)   
+rf_pred_ERK2=average_predictionRF(CV_pred_ERK2)
+predictions_ERK2['RandomForest']=rf_pred_ERK2
+
+#_______SVM_______
+# PKM2 Models
+#make list of models
+models_SVM_PKM2_list=[models_SVM_PKM2]
+SVM_pred_PKM2=predict_model(models_SVM_PKM2_list, X_test) 
+predictions_PKM2['SVM']=SVM_pred_PKM2[0]['y_pred'] 
+# ERK2 Models
+models_SVM_ERK2_list=[models_SVM_ERK2]
+SVM_pred_ERK2=predict_model(models_SVM_ERK2_list, X_test) 
+predictions_ERK2['SVM']=SVM_pred_ERK2[0]['y_pred'] 
+
+#_______XGBOOST_______
+# PKM2 Models
+models_xgb_PKM2_list=[models_xgb_PKM2]
+xgb_pred_PKM2=predict_model(models_xgb_PKM2_list, X_test) 
+predictions_PKM2['xgb']=xgb_pred_PKM2[0]['y_pred'] 
+# ERK2 Models
+models_xgb_ERK2_list=[models_xgb_ERK2]
+xgb_pred_ERK2=predict_model(models_xgb_ERK2_list, X_test) 
+predictions_ERK2['xgb']=xgb_pred_ERK2[0]['y_pred'] 
+
+#_______RANDOM FOREST_______
+# PKM2 Models
+CV_pred_PKM2_bin=predict_model(models_CV_PKM2_bin, X_test_bin)   
+rf_pred_pkm2_bin=average_predictionRF(CV_pred_PKM2_bin)
+predictions_PKM2['RandomForest_fingerprints']=rf_pred_pkm2_bin
+# ERK2 Models
+CV_pred_ERK2_bin=predict_model(models_CV_ERK2_bin, X_test_bin)   
+rf_pred_ERK2_bin=average_predictionRF(CV_pred_ERK2_bin)
+predictions_ERK2['RandomForest_fingerprints']=rf_pred_ERK2_bin
+#%%  
+#______________VOTING____________
 def voting_mechanism(predictions):
     # Convert dictionary values to a list of numpy arrays
     preds_list = list(predictions.values())
