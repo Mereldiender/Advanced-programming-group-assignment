@@ -59,7 +59,7 @@ def find_hyperparameters(X_train, X_test, y_train, y_test):
     best_params : dict
         Dictionary containing the values of the hyperparameters that result
         in the best balanced accuracy score
-    bal_accuracy_score : float
+    bal_acc_score : float
         Balanced accuracy score of the value to be predicted
     """
     # Hyperparameter grid
@@ -217,7 +217,7 @@ train_data_file_bin= 'C:\\Users\\20192547\\OneDrive - TU Eindhoven\\Documents\\J
 #test_data_file = 'C:\\Users\\20212435\\Documents\\GitHub\\Group assignment\\Advanced-programming-group-assignment\\test_descriptors_balanced.pkl'
 
 #______________TRAIN descriptor models______________
-# Non-binaire descriptor models
+# Non-binary descriptor models
 #_______RANDOM FOREST______
 # PKM2 Models
 models_CV_PKM2 = find_models('PKM2_inhibition', train_data_file)
@@ -241,7 +241,7 @@ models_xgb_PKM2=models_xgboost(xgb_PKM2,'PKM2_inhibition', train_data_file)
 xgb_ERK2 = xgb.XGBClassifier(objective='binary:logistic', eval_metric='logloss')
 models_xgb_ERK2=models_xgboost(xgb_ERK2,'ERK2_inhibition', train_data_file)
 
-# Binaire descriptor models
+# Binary descriptor models
 #_______RANDOM FOREST______
 # PKM2 Models
 models_CV_PKM2_bin = find_models('PKM2_inhibition', train_data_file_bin)
@@ -249,22 +249,22 @@ models_CV_PKM2_bin = find_models('PKM2_inhibition', train_data_file_bin)
 models_CV_ERK2_bin = find_models('ERK2_inhibition', train_data_file_bin)
 
 
-#______________PREDICT NON-BINAIR descriptor models______________
+#______________PREDICT NON-BINARY descriptor models______________
 predictions_PKM2={}
 predictions_ERK2={}
 # Get test data
-#for non-binaire models
+#for non-binary models
 data = read_data(train_data_file)
 X = data.drop(columns=['PKM2_inhibition','SMILES', 'ERK2_inhibition'], axis=1)
 y = data['PKM2_inhibition']
 _, X_test, _, _ = train_test_split(X, y, test_size=0.2, random_state=10)
-#for binair models
+#for binary models
 data = read_data(train_data_file_bin)
 X = data.drop(columns=['PKM2_inhibition','SMILES', 'ERK2_inhibition'], axis=1)
 y = data['PKM2_inhibition']
 _, X_test_bin, _, _ = train_test_split(X, y, test_size=0.2, random_state=10)
 
-#_______RANDOM FOREST Non-binair_______
+#_______RANDOM FOREST Non-binary_______
 # PKM2 Models
 CV_pred_PKM2=predict_model(models_CV_PKM2, X_test)   
 rf_pred_pkm2=average_predictionRF(CV_pred_PKM2)
