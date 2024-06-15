@@ -14,6 +14,7 @@ from sklearn.model_selection import RandomizedSearchCV, KFold,train_test_split
 from sklearn.metrics import balanced_accuracy_score, ConfusionMatrixDisplay,confusion_matrix
 import xgboost as xgb
 from sklearn.utils.class_weight import compute_sample_weight
+import csv
 
 ## ---------------- Read file do dataframe
 def read_data(input_file):
@@ -94,9 +95,9 @@ def find_hyperparameters(X_train, X_test, y_train, y_test):
     
     # Calculate the balanced accuracy score for each target
     bal_acc_score = balanced_accuracy_score(y_test, prediction)
-    print('Model balanced accuracy score after hyperparameter tuning: {0:0.4f}'.format(
-        bal_acc_score)
-        )
+    #print('Model balanced accuracy score after hyperparameter tuning: {0:0.4f}'.format(
+        #bal_acc_score)
+        #)
     return best_model, best_params, bal_acc_score
 
 
@@ -212,8 +213,8 @@ def predict_model(models_CV, X_test):
 # training data, train_data_file only contains the training data and
 # test_data_file only contains the data used for testing.
 
-train_data_file = 'C:\\Users\\20192547\\OneDrive - TU Eindhoven\\Documents\\JAAR 5\\Advanced programming and biomedical data analysis\\Group assignment\\train_descriptors_balanced_pc_80.pkl'
-train_data_file_bin= 'C:\\Users\\20192547\\OneDrive - TU Eindhoven\\Documents\\JAAR 5\\Advanced programming and biomedical data analysis\\Group assignment\\training_fingerprints_balanced.pkl'
+train_data_file = 'C:\\Users\\20212435\\Documents\\GitHub\\Group assignment\\Advanced-programming-group-assignment\\train_descriptors_balanced_pc_80.pkl'
+train_data_file_bin= 'C:\\Users\\20212435\\Documents\\GitHub\\Group assignment\\Advanced-programming-group-assignment\\training_fingerprints_balanced.pkl'
 #test_data_file = 'C:\\Users\\20212435\\Documents\\GitHub\\Group assignment\\Advanced-programming-group-assignment\\test_descriptors_balanced.pkl'
 
 #______________TRAIN descriptor models______________
@@ -318,3 +319,31 @@ def voting_mechanism(predictions):
 final_preds_PKM2=voting_mechanism(predictions_PKM2)
 final_preds_ERK2=voting_mechanism(predictions_ERK2)
 
+#______________WRITE TO FILE____________
+def write_csv(untested_molecules, final_preds_PKM2, final_preds_ERK2,  output_file):
+    """
+    Writes the final predictions of untested molecules to output file
+    
+    Parameters
+    ----------
+    untested_molecules : DataFrame column
+        SMILES strings of the untested molecules
+    final_preds_PKM2 : ndarray
+        Array with predicitons on inhibition of PKM2
+    final_preds_ERK2 : ndarray
+        Array with predictions on inhibition of ERK2
+    output_file : str
+        Name of the file that contains the output data
+    
+    """
+    with open(output_file, 'w', newline='') as file:
+        data_writer = csv.writer(file)
+        
+        header = ['SMILES', 'PKM2_inhibition', 'ERK2_inhibition']
+        data_writer.writerow(header)
+        
+        for i in range(len(untested_molecules)):
+            data_writer.writerow([untested_molecules[i], final_preds_PKM2[i], final_preds_ERK2[i]])
+
+output_file = 'C:\\Users\\20212435\\Documents\\Jaar 3 Q4\\Advanced Programming\\Group project\\check_writing.csv'
+write_csv(data['SMILES'].iloc[0:200], final_preds_ERK2, final_preds_PKM2, output_file)
