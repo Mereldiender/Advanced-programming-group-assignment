@@ -78,7 +78,7 @@ def find_hyperparameters(X_train, X_test, y_train, y_test):
     # Create the random search model
     rs = RandomizedSearchCV(rfc, param_grid, n_jobs=-1, 
                             scoring='balanced_accuracy', cv=3, 
-                            n_iter=10, verbose=1, random_state=None)
+                            n_iter=10, verbose=1, random_state=42)
 
     # Fit 
     rs.fit(X_train, y_train)
